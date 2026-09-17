@@ -9,10 +9,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Unzip Project
+      - name: Unzip Project and Locate Root
         run: |
-          mkdir my_project
-          unzip WhatsAppRecoveryPro-CLOUD-READY-v2.zip -d my_project
+          mkdir -p my_project
+          unzip -q WhatsAppRecoveryPro-CLOUD-READY-v2.zip -d my_project
+          # البحث تلقائياً عن مجلد المشروع الذي يحتوي على gradlew
+          GRADLEW_FILE=$(find my_project -name "gradlew" -print -quit)
+          PROJECT_DIR=$(dirname "$GRADLEW_FILE")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+          echo "Found project at: $PROJECT_DIR"
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -22,15 +27,16 @@ jobs:
 
       - name: Grant execute permission and fix line endings
         run: |
-          chmod +x my_project/gradlew
-          sed -i 's/\r$//' my_project/gradlew
+          chmod +x ${{ env.PROJECT_DIR }}/gradlew
+          find ${{ env.PROJECT_DIR }} -type f -exec sed -i 's/\r$//' {} +
 
       - name: Build APK
-        working-directory: ./my_project
+        working-directory: ${{ env.PROJECT_DIR }}
         run: ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: My-App-APK
-          path: my_project/app/build/outputs/apk/debug/*.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
+          
