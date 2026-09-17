@@ -18,17 +18,31 @@ jobs:
       - name: Extract and Fix Project
         run: |
           mkdir -p my_project
-          unzip -q WhatsAppRecoveryPro-CLOUD-READY-v2.zip -d my_project
+          python3 -c "
+          import zipfile, os
+          with zipfile.ZipFile('WhatsAppRecoveryPro-CLOUD-READY-v2.zip', 'r') as z:
+              z.extractall('my_project')
+          for root, dirs, files in os.walk('my_project'):
+              for file in files:
+                  if file.endswith(('.gradle', '.kts', '.properties', 'gradlew')) or file == 'gradlew':
+                      path = os.path.join(root, file)
+                      try:
+                          with open(path, 'rb') as f:
+                              content = f.read()
+                          content = content.replace(b'\r\n', b'\n')
+                          with open(path, 'wb') as f:
+                              f.write(content)
+                      except Exception as e:
+                          pass
+          "
           chmod +x my_project/gradlew
-          sed -i 's/\r$//' my_project/gradlew
 
       - name: Build APK
         working-directory: my_project
-        run: ./gradlew assembleDebug
+        run: bash ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: WhatsAppRecoveryPro-APK
           path: my_project/app/build/outputs/apk/debug/*.apk
-          
