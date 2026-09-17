@@ -15,21 +15,24 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
 
-      - name: Install Gradle and Fix Project
+      - name: Extract Project
         run: |
-          sudo apt-get update && sudo apt-get install -y gradle
           mkdir -p my_project
+          # فك الضغط عن المشروع
           unzip -q WhatsAppRecoveryPro-CLOUD-READY-v2.zip -d my_project
-          cd my_project
-          gradle wrapper
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
 
       - name: Build APK
         working-directory: my_project
-        run: gradle assembleDebug
+        run: |
+          # إعطاء صلاحية التشغيل لملف gradlew ثم البناء
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: WhatsAppRecoveryPro-APK
           path: my_project/app/build/outputs/apk/debug/*.apk
-          
