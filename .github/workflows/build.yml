@@ -9,15 +9,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Inspect ZIP contents
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+
+      - name: Extract Project
         run: |
-          python3 -c "
-          import zipfile, glob, os
-          print('Files in root:', os.listdir('.'))
-          zip_files = glob.glob('*.zip')
-          print('ZIP files found:', zip_files)
-          if zip_files:
-              with zipfile.ZipFile(zip_files[0], 'r') as z:
-                  for name in z.namelist()[:30]:
-                      print('  -', name)
-          "
+          mkdir -p my_project
+          unzip -q WhatsAppRecoveryPro-CLOUD-READY-v2.zip -d my_project
+          chmod +x my_project/gradlew
+
+      - name: Build APK
+        working-directory: my_project
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WhatsAppRecoveryPro-APK
+          path: my_project/app/build/outputs/apk/debug/*.apk
+          
