@@ -15,20 +15,21 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
 
-      - name: Extract and Fix Line Endings
+      - name: Install Gradle and Fix Project
         run: |
+          sudo apt-get update && sudo apt-get install -y gradle
           mkdir -p my_project
           unzip -q WhatsAppRecoveryPro-CLOUD-READY-v2.zip -d my_project
-          sudo apt-get update && sudo apt-get install -y dos2unix
-          find my_project -type f -exec dos2unix {} +
-          chmod +x my_project/gradlew
+          cd my_project
+          gradle wrapper
 
       - name: Build APK
         working-directory: my_project
-        run: ./gradlew assembleDebug
+        run: gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: WhatsAppRecoveryPro-APK
           path: my_project/app/build/outputs/apk/debug/*.apk
+          
