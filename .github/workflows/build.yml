@@ -20,8 +20,10 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x my_project/gradlew
+      - name: Grant execute permission and fix line endings
+        run: |
+          chmod +x my_project/gradlew
+          sed -i 's/\r$//' my_project/gradlew
 
       - name: Build APK
         working-directory: ./my_project
