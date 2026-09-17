@@ -17,22 +17,35 @@ jobs:
 
       - name: Extract Project
         run: |
-          mkdir -p my_project
-          # فك الضغط عن المشروع
-          unzip -q WhatsAppRecoveryPro-CLOUD-READY-v2.zip -d my_project
+          mkdir -p extracted_project
+          unzip -q WhatsAppRecoveryPro-CLOUD-READY-v2.zip -d extracted_project
+          echo "تم فك الضغط بنجاح. جاري استعراض الملفات..."
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Build APK
-        working-directory: my_project
+      - name: Smart Build APK
         run: |
-          # إعطاء صلاحية التشغيل لملف gradlew ثم البناء
+          # البحث التلقائي عن مسار ملف gradlew
+          GRADLEW_PATH=$(find extracted_project -name "gradlew" | head -n 1)
+          
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "خطأ: لم يتم العثور على ملف gradlew داخل الملف المضغوط!"
+            exit 1
+          fi
+          
+          PROJECT_DIR=$(dirname "$GRADLEW_PATH")
+          echo "تم العثور على المشروع في: $PROJECT_DIR"
+          
+          # الدخول للمسار الصحيح، إعطاء الصلاحيات، وبناء التطبيق
+          cd "$PROJECT_DIR"
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Smart Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: WhatsAppRecoveryPro-APK
-          path: my_project/app/build/outputs/apk/debug/*.apk
+          # البحث التلقائي عن أي ملف APK تم إنشاؤه ورفعه
+          path: extracted_project/**/*.apk
+          
