@@ -1,4 +1,4 @@
-name: Build APK
+name: Build APK (Diagnostic Mode)
 
 on: [push, workflow_dispatch]
 
@@ -15,11 +15,20 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
 
+      - name: Check ZIP File
+        run: |
+          echo "جاري فحص وجود الملف المضغوط..."
+          ls -la *.zip || echo "تحذير: لم يتم العثور على ملفات ZIP في المسار الرئيسي!"
+
       - name: Extract Project
         run: |
           mkdir -p extracted_project
           unzip -q WhatsAppRecoveryPro-CLOUD-READY-v2.zip -d extracted_project
-          echo "تم فك الضغط بنجاح. جاري استعراض الملفات..."
+          
+      - name: Show Extracted Files (Live Data)
+        run: |
+          echo "هذه هي الملفات التي تم استخراجها (أول 30 ملف):"
+          find extracted_project -type f | head -n 30
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -30,15 +39,22 @@ jobs:
           GRADLEW_PATH=$(find extracted_project -name "gradlew" | head -n 1)
           
           if [ -z "$GRADLEW_PATH" ]; then
-            echo "خطأ: لم يتم العثور على ملف gradlew داخل الملف المضغوط!"
+            echo "خطأ حرج: لم يتم العثور على ملف gradlew داخل الملف المضغوط!"
+            echo "يرجى التأكد من أنك قمت بضغط مشروع Android Studio بالكامل وليس فقط مجلد المصدر."
             exit 1
           fi
           
           PROJECT_DIR=$(dirname "$GRADLEW_PATH")
           echo "تم العثور على المشروع في: $PROJECT_DIR"
           
-          # الدخول للمسار الصحيح، إعطاء الصلاحيات، وبناء التطبيق
           cd "$PROJECT_DIR"
+          
+          # إصلاح مشكلة ترميز الويندوز (CRLF) التي تسبب خطأ 127
+          sudo apt-get update
+          sudo apt-get install -y dos2unix
+          dos2unix gradlew
+          
+          # إعطاء الصلاحيات وبدء البناء
           chmod +x gradlew
           ./gradlew assembleDebug
 
@@ -46,6 +62,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: WhatsAppRecoveryPro-APK
-          # البحث التلقائي عن أي ملف APK تم إنشاؤه ورفعه
           path: extracted_project/**/*.apk
-          
